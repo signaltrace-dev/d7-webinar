@@ -1,0 +1,119 @@
+<?php
+
+function webinar_field_formatter_info(){
+  return array(
+    'webinar_times' => array(
+      'label' => t('Webinar dates and times'),
+      'field types' => array('datetime'),
+      'multiple values' => FIELD_BEHAVIOR_DEFAULT,
+    ),
+  );
+}
+
+function webinar_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+  $elements = array();
+
+  $date_groups = array();
+  if($display['type'] == 'webinar_times'){
+    foreach ($items as $delta => $item) {
+      $date_format = 'Y-m-d H:i:s';
+      $start_datetime = !empty($item['value']) ? DateTime::createFromFormat($date_format, $item['value']) : NULL;
+      $end_datetime = !empty($item['value2']) ? DateTime::createFromFormat($date_format, $item['value2']) : NULL;
+
+      $start_date = $start_datetime->format('Y-m-d');
+      if(empty($date_groups[$start_date])){
+        $date_groups[$start_date] = array(
+          'fulldate' => $start_datetime,
+          'month' => $start_datetime->format('F'),
+          'day' => $start_datetime->format('D'),
+          'date' => $start_datetime->format('d'),
+          'year' => $start_datetime->format('Y'),
+          'times' => array(),
+        );
+      }
+      $date_groups[$start_date]['times'][] = array(
+        'start' => $start_datetime,
+        'end' => $end_datetime,
+      );
+
+    }
+
+    if(!empty($date_groups)){
+      $markup = array();
+
+      foreach($date_groups as $d => $date){
+        $markup[$d] = array(
+          '#prefix' => '<div class="date-group">',
+          '#suffix' => '</div>',
+        );
+
+        $markup[$d]['date_cal'] = array(
+          '#prefix' => '<div class="date-cal">',
+          '#suffix' => '</div>',
+        );
+        $markup[$d]['date_cal']['month'] = array(
+          '#prefix' => '<span class="month">',
+          '#suffix' => '</span>',
+          '#markup' => $date['month'],
+        );
+
+        $markup[$d]['date_cal']['date'] = array(
+          '#prefix' => '<span class="date">',
+          '#suffix' => '</span>',
+          '#markup' => $date['date'],
+        );
+
+        $markup[$d]['date_display'] = array(
+          '#prefix' => '<div class="date-display">',
+          '#suffix' => '</div>',
+        );
+
+        $markup[$d]['date_display']['date_label'] = array(
+          '#prefix' => '<div class="date-label">',
+          '#suffix' => '</div>',
+          '#markup' => $date['fulldate']->format('D, F jS'),
+        );
+
+        $markup[$d]['date_display']['times'] = array(
+          '#prefix' => '<div class="date-times">',
+          '#suffix' => '</div>',
+        );
+
+        $markup[$d]['date_display']['times']['list'] = array(
+          '#prefix' => '<ul class="times">',
+          '#suffix' => '</ul>',
+        );
+
+        foreach($date['times'] as $key => $value){
+          $markup[$d]['date_display']['times']['list'][$key] = array(
+            '#prefix' => '<li>',
+            '#suffix' => '</li>',
+          );
+          $start_datetime = !empty($value['start']) ? $value['start'] : NULL;
+          $end_datetime = !empty($value['end']) ? $value['end'] : NULL;
+
+          $markup[$d]['date_display']['times']['list'][$key]['start_time'] = array(
+            '#prefix' => '<span class="start-time">',
+            '#suffix' => '</span>',
+            '#markup' => $start_datetime->format('h:i a'),
+          );
+
+          $markup[$d]['date_display']['times']['list'][$key]['divider'] = array(
+            '#prefix' => '<span class="time-divider">',
+            '#suffix' => '</span>',
+            '#markup' => '-',
+          );
+
+          $markup[$d]['date_display']['times']['list'][$key]['end_time'] = array(
+            '#prefix' => '<span class="end-time">',
+            '#suffix' => '</span>',
+            '#markup' => $end_datetime->format('h:i a'),
+          );
+        }
+
+      }
+      $elements[0]['#markup'] = drupal_render($markup);
+    }
+  }
+  return $elements;
+}
